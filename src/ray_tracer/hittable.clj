@@ -3,17 +3,17 @@
   (:require [ray-tracer.utils :as utils])
   (:require [ray-tracer.vec3 :as vec3]))
 
-(defn hit-record [ray t center radius]
+(defn hit-record [ray t center radius material]
   (let [p (ray/at ray t)
         normal (vec3// (vec3/- p center) radius)
         front-face (neg? (vec3/dot (ray/direction ray) normal))
         outward-normal (if front-face normal (vec3/- [0 0 0] normal))]
-    {:t t :p p :normal outward-normal}))
+    {:t t :p p :normal outward-normal :material material}))
 
 (defprotocol Hittable
   (hit [this ray t-min t-max]))
 
-(defrecord Sphere [center radius]
+(defrecord Sphere [center radius material]
   Hittable
   (hit [this ray t-min t-max]
     (let [dir (ray/direction ray)
@@ -27,10 +27,10 @@
       (when (pos? discr)
         (let [root (/ (- (- half-b) (Math/sqrt discr)) a)]
           (if (utils/in-range? root t-min t-max)
-            (hit-record ray root (:center this) r)
+            (hit-record ray root (:center this) r (:material this))
             (let [root (/ (+ (- half-b) (Math/sqrt discr)) a)]
               (when (utils/in-range? root t-min t-max)
-                (hit-record ray root (:center this) r)))))))))
+                (hit-record ray root (:center this) r (:material this))))))))))
 
 
 (defn check-world [world ray t-min t-max]

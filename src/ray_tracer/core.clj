@@ -3,18 +3,32 @@
   (:require [clojure.java.io :as io])
   (:require [ray-tracer.ray :as ray])
   (:require [ray-tracer.hittable :as hittable])
+  (:require [ray-tracer.material :as material])
   (:require [ray-tracer.camera :as camera])
   (:require [ray-tracer.utils :as utils])
   (:require [ray-tracer.vec3 :as vec3]))
 
 (def ^:const width 400)
 (def ^:const height 225)
-(def ^:const samples-per-pixel 100)
+(def ^:const samples-per-pixel 10)
 (def ^:const max-depth 50)
 
-
-(def world [(hittable/map->Sphere {:center [0 0 -1] :radius 0.5})
-            (hittable/map->Sphere {:center [0 -100.5 -1] :radius 100})])
+(def world [(hittable/map->Sphere
+             {:center [-1 0 -1]
+              :radius 0.5
+              :material (material/->Metal [0.8 0.8 0.8] 0.3)})
+            (hittable/map->Sphere
+             {:center [1 0 -1]
+              :radius 0.5
+              :material (material/->Metal [0.8 0.6 0.2] 1)})
+            (hittable/map->Sphere
+             {:center [0 0 -1]
+              :radius 0.5
+              :material (material/->Lambertian [0.7 0.3 0.3])})
+            (hittable/map->Sphere
+             {:center [0 -100.5 -1]
+              :radius 100
+              :material (material/->Lambertian [0.8 0.8 0.0])})])
 
 (defn write-color [[r g b] out-file]
   (let [ir (int (* (utils/clamp (Math/sqrt r) 0 0.999) 256))
@@ -26,8 +40,12 @@
   (if (pos? depth)
     (let [record (hittable/check-world world ray 0.001 ##Inf)]
       (if record
-        (let [target (vec3/+ (vec3/+ (:normal record) (:p record)) (utils/rand-unit-vec3))]
-          (vec3/* (ray-color [(:p record) (vec3/- target (:p record))] world (- depth 1)) 0.5))
+        (let [result (material/scatter (:material record) ray record)
+              scattered (material/scattered result)
+              attenuation (material/attenuation result)]
+          (if result
+            (vec3/* attenuation (ray-color scattered world (- depth 1)))
+            [0 0 0]))
         (let [unit-direction (vec3/unit-vector (ray/direction ray))
               tmp (* (+ 1 (vec3/y unit-direction)) 0.5)]
           (vec3/+ (vec3/* [1.0 1.0 1.0] (- 1.0 tmp))

@@ -68,3 +68,6 @@
       (let [uv-ndt (- uv (* n dt))
             n-discrim (* n (Math/sqrt discriminant))]
         (- (* uv-ndt ni-over-nt) n-discrim)))))
+
+(defn near-zero [[x y z]]
+  (and (< x 1e-8) (< y 1e-8) (< z 1e-8)))
