@@ -3,30 +3,22 @@
   (:require [clojure.java.io :as io])
   (:require [ray-tracer.ray :as ray])
   (:require [ray-tracer.hittable :as hittable])
+  (:require [ray-tracer.camera :as camera])
+  (:require [ray-tracer.utils :as utils])
   (:require [ray-tracer.vec3 :as vec3]))
 
 (def ^:const width 400)
 (def ^:const height 225)
+(def ^:const samples-per-pixel 10)
 
-(def ^:const viewport_h 2.0)
-(def ^:const viewport_w 3.5555555)
-
-(def ^:const origin [0 0 0])
-(def ^:const horizontal [viewport_w 0 0])
-(def ^:const vertical [0 viewport_h 0])
-(def ^:const focal_length 1.0)
-(def lower_left (vec3/- (vec3/- (vec3/- origin
-                        (vec3// horizontal 2))
-                        (vec3// vertical 2))
-                        [0 0 focal_length]))
 
 (def world [(hittable/map->Sphere {:center [0 0 -1] :radius 0.5})
             (hittable/map->Sphere {:center [0 -100.5 -1] :radius 100})])
 
 (defn write-color [[r g b] out-file]
-  (let [ir (int (* r 255.999))
-        ig (int (* g 255.999))
-        ib (int (* b 255.999))]
+  (let [ir (int (* (utils/clamp r 0 0.999) 256))
+        ig (int (* (utils/clamp g 0 0.999) 256))
+        ib (int (* (utils/clamp b 0 0.999) 256))]
   (.write out-file (str ir " " ig " " ib "\n"))))
 
 (defn ray-color [ray world]
@@ -47,13 +39,12 @@
       (print "\rScanlines remaining: " j " ")
       (flush)
       (doseq [i (range 0 width)]
-        (let [u (/ i (- width 1))
-              v (/ j (- height 1))
-              pixel-color (ray-color [origin (vec3/+ (vec3/+ (vec3/- lower_left origin)
-                                                             (vec3/* horizontal u))
-                                                     (vec3/* vertical v))]
-                                     world)]
-        (write-color pixel-color out-file)))))
+        (let [samples (map (fn [_] (let [u (/ (+ i (rand)) (- width 1))
+                                        v (/ (+ j (rand)) (- height 1))]
+                                    (vec3// (ray-color (camera/get-ray u v) world)
+                                            samples-per-pixel))) (range 0 samples-per-pixel))
+              pixel-color (reduce vec3/+ samples)]
+          (write-color pixel-color out-file)))))
   (print "\nDone\n"))
 
 
