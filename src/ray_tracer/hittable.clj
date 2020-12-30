@@ -8,29 +8,28 @@
         normal (vec3// (vec3/- p center) radius)
         front-face (neg? (vec3/dot (ray/direction ray) normal))
         outward-normal (if front-face normal (vec3/- [0 0 0] normal))]
-    {:t t :p p :normal outward-normal :material material}))
+    {:t t :p p :normal outward-normal :material material :front-face front-face}))
 
 (defprotocol Hittable
-  (hit [this ray t-min t-max]))
+  (hit [obj ray t-min t-max]))
 
 (defrecord Sphere [center radius material]
   Hittable
-  (hit [this ray t-min t-max]
+  (hit [obj ray t-min t-max]
     (let [dir (ray/direction ray)
           org (ray/origin ray)
-          oc (vec3/- org (:center this))
+          oc (vec3/- org center)
           a (vec3/length-squared dir)
           half-b (vec3/dot oc dir)
-          r (:radius this)
-          c (- (vec3/length-squared oc) (* r r))
+          c (- (vec3/length-squared oc) (* radius radius))
           discr (- (* half-b half-b) (* a c))]
       (when (pos? discr)
         (let [root (/ (- (- half-b) (Math/sqrt discr)) a)]
           (if (utils/in-range? root t-min t-max)
-            (hit-record ray root (:center this) r (:material this))
+            (hit-record ray root center radius material)
             (let [root (/ (+ (- half-b) (Math/sqrt discr)) a)]
               (when (utils/in-range? root t-min t-max)
-                (hit-record ray root (:center this) r (:material this))))))))))
+                (hit-record ray root center radius material)))))))))
 
 
 (defn check-world [world ray t-min t-max]

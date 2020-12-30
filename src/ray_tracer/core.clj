@@ -16,15 +16,15 @@
 (def world [(hittable/map->Sphere
              {:center [-1 0 -1]
               :radius 0.5
-              :material (material/->Metal [0.8 0.8 0.8] 0.3)})
+              :material (material/->Metal [0.7 0.2 0.1] 0)})
             (hittable/map->Sphere
              {:center [1 0 -1]
               :radius 0.5
-              :material (material/->Metal [0.8 0.6 0.2] 1)})
+              :material (material/->Metal [0.8 0.1 0.9] 0)})
             (hittable/map->Sphere
              {:center [0 0 -1]
               :radius 0.5
-              :material (material/->Lambertian [0.7 0.3 0.3])})
+              :material (material/->Lambertian [0.1 0.2 0.5])})
             (hittable/map->Sphere
              {:center [0 -100.5 -1]
               :radius 100
@@ -67,7 +67,7 @@
       (print "\rScanlines remaining: " j " ")
       (flush)
       (doseq [i (range 0 width)]
-        (let [samples (map #(do-samples i j world %) (range 0 samples-per-pixel))
+        (let [samples (pmap #(do-samples i j world %) (range 0 samples-per-pixel))
               pixel-color (reduce vec3/+ samples)]
           (write-color pixel-color out-file)))))
   (print "\nDone\n"))

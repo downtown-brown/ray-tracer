@@ -59,15 +59,11 @@
   (let [m (* n (clj/* (dot v n) 2))]
     (- v m)))
 
-(defn refract [v n ni-over-nt]
-  (let [uv (unit-vector v)
-        dt (dot uv n)
-        discriminant (clj/- 1.0
-                            (clj/* ni-over-nt ni-over-nt (clj/- 1 (clj/* dt dt))))]
-    (when (pos? discriminant)
-      (let [uv-ndt (- uv (* n dt))
-            n-discrim (* n (Math/sqrt discriminant))]
-        (- (* uv-ndt ni-over-nt) n-discrim)))))
+(defn refract [uv n eta-ratio]
+  (let [cos-theta (min (clj/- (dot uv n)) 1)
+        r-out-perp (* (+ uv (* n cos-theta)) eta-ratio)
+        r-out-parallel (* n (clj/- (Math/sqrt (Math/abs (clj/- 1 (length-squared r-out-perp))))))]
+    (+ r-out-perp r-out-parallel)))
 
 (defn near-zero [[x y z]]
   (and (< x 1e-8) (< y 1e-8) (< z 1e-8)))
