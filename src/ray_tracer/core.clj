@@ -10,8 +10,12 @@
 
 (def ^:const width 400)
 (def ^:const height 225)
+
+(def aspect-ratio (/ 16 9))
 (def ^:const samples-per-pixel 10)
 (def ^:const max-depth 50)
+
+(def get-ray (camera/make-camera 20.0 aspect-ratio [-2 2 1] [0 0 -1] [0 1 0]))
 
 (def world [(hittable/map->Sphere
              {:center [-1 0 -1]
@@ -55,7 +59,7 @@
 (defn do-samples [i j world _]
   (let [u (/ (+ i (rand)) (- width 1))
         v (/ (+ j (rand)) (- height 1))]
-    (vec3// (ray-color (camera/get-ray u v) world max-depth)
+    (vec3// (ray-color (get-ray u v) world max-depth)
             samples-per-pixel)))
 
 (defn -main
@@ -67,7 +71,7 @@
       (print "\rScanlines remaining: " j " ")
       (flush)
       (doseq [i (range 0 width)]
-        (let [samples (pmap #(do-samples i j world %) (range 0 samples-per-pixel))
+        (let [samples (map #(do-samples i j world %) (range 0 samples-per-pixel))
               pixel-color (reduce vec3/+ samples)]
           (write-color pixel-color out-file)))))
   (print "\nDone\n"))
