@@ -46,14 +46,14 @@
   (let [l (length v)]
     (map #(clj// % l) v)))
 
-(defn x [v]
-  (first v))
+(defn x [[^float x1 ^float y1 ^float z1]]
+  x1)
 
-(defn y [v]
-  (second v))
+(defn y [[^float x1 ^float y1 ^float z1]]
+  y1)
 
-(defn z [v]
-  (last v))
+(defn z [[^float x1 ^float y1 ^float z1]]
+  z1)
 
 (defn reflect [v n]
   (let [m (* n (clj/* (dot v n) 2))]

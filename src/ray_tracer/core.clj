@@ -1,38 +1,79 @@
 (ns ray-tracer.core
   (:gen-class)
-  (:require [clojure.java.io :as io])
-  (:require [ray-tracer.ray :as ray])
-  (:require [ray-tracer.hittable :as hittable])
-  (:require [ray-tracer.material :as material])
-  (:require [ray-tracer.camera :as camera])
-  (:require [ray-tracer.utils :as utils])
-  (:require [ray-tracer.vec3 :as vec3]))
+  (:require [clojure.java.io :as io]
+            [ray-tracer.ray :as ray]
+            [ray-tracer.hittable :as hittable]
+            [ray-tracer.material :as material]
+            [ray-tracer.camera :as camera]
+            [ray-tracer.utils :as utils]
+            [ray-tracer.vec3 :as vec3]))
 
 (def ^:const width 400)
 (def ^:const height 225)
 
-(def aspect-ratio (/ 16 9))
+(def aspect-ratio (/ width height))
 (def ^:const samples-per-pixel 10)
 (def ^:const max-depth 50)
 
-(def get-ray (camera/make-camera 20.0 aspect-ratio [-2 2 1] [0 0 -1] [0 1 0]))
+(def cam (camera/map->Camera {:lookfrom [13 2 3]
+                              :lookat [0 0 -1]
+                              :vup [0 1 0]
+                              :vfov 20.0
+                              :aspect-ratio aspect-ratio
+                              :aperture 0.1
+                              :focus-dist 10.0}))
 
-(def world [(hittable/map->Sphere
-             {:center [-1 0 -1]
-              :radius 0.5
-              :material (material/->Metal [0.7 0.2 0.1] 0)})
-            (hittable/map->Sphere
-             {:center [1 0 -1]
-              :radius 0.5
-              :material (material/->Metal [0.8 0.1 0.9] 0)})
-            (hittable/map->Sphere
-             {:center [0 0 -1]
-              :radius 0.5
-              :material (material/->Lambertian [0.1 0.2 0.5])})
-            (hittable/map->Sphere
-             {:center [0 -100.5 -1]
-              :radius 100
-              :material (material/->Lambertian [0.8 0.8 0.0])})])
+(def get-ray (camera/make-camera cam))
+
+(def world-const [(hittable/map->Sphere
+                   {:center [0 1 0]
+                    :radius 1
+                    :material (material/->Dielectric 1.5)})
+                  (hittable/map->Sphere
+                   {:center [4, 1, 0]
+                    :radius 1
+                    :material (material/->Metal [0.7, 0.6, 0.5] 0)})
+                  (hittable/map->Sphere
+                   {:center [-4, 1, 0]
+                    :radius 1
+                    :material (material/->Lambertian [0.4, 0.2, 0.1])})
+                  (hittable/map->Sphere
+                   {:center [0 -1000 0]
+                    :radius 1000
+                    :material (material/->Lambertian [0.5, 0.5, 0.5])})])
+
+(defn gen-random-spheres [a b]
+  (let [choose-mat (rand)
+        center [(+ a (* 0.9 (rand))) 0.2 (+ b (* 0.9 (rand)))]]
+    (when (> (vec3/length (vec3/- center [4 0.2 0])) 0.9)
+      (cond
+        (< choose-mat 0.8)
+        (hittable/map->Sphere
+         {:center center
+          :radius 0.2
+          :material (material/->Lambertian
+                     (vec3/* (utils/rand-unit-vec3)
+                             (utils/rand-unit-vec3)))})
+        (< choose-mat 0.95)
+        (hittable/map->Sphere
+         {:center center
+          :radius 0.2
+          :material (material/->Metal
+                     (vec3/* (utils/rand-unit-vec3) 0.5)
+                     (rand 0.5))})
+        :else
+        (hittable/map->Sphere
+         {:center center
+          :radius 0.2
+          :material (material/->Dielectric 1.5)})))))
+
+(def world-rand
+  (vec (remove
+        nil? (for [a (range -11 11)
+                   b (range -11 11)]
+               (gen-random-spheres a b)))))
+
+(def world (vec (concat world-rand world-const)))
 
 (defn write-color [[r g b] out-file]
   (let [ir (int (* (utils/clamp (Math/sqrt r) 0 0.999) 256))
